@@ -1,0 +1,3 @@
+[
+  {"question": "What is the price of Sample Course A?", "expect_course": "Sample Course A", "expect_field": "price"}
+]

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Course Chatbot</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <div class="chat-container">
+        <header>
+            <h1>Course Chatbot</h1>
+            <p>Ask me about our courses!</p>
+        </header>
+
+        <div id="messages" class="messages">
+            <div class="bot-message">
+                Hello! 👋 How can I help you today?
+            </div>
+        </div>
+
+        <div id="suggestions" class="suggestions"></div>
+
+        <form id="chat-form">
+            <input
+                type="text"
+                id="message-input"
+                placeholder="Ask about a course..."
+                autocomplete="off"
+                required
+            >
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <script>
+        const messages = document.getElementById("messages");
+        const suggestions = document.getElementById("suggestions");
+        const form = document.getElementById("chat-form");
+        const input = document.getElementById("message-input");
+
+        // Keep the same ID throughout this browser session.
+        let sessionId = sessionStorage.getItem("courseChatSessionId");
+
+        if (!sessionId) {
+            sessionId = crypto.randomUUID();
+            sessionStorage.setItem("courseChatSessionId", sessionId);
+        }
+
+        function addMessage(text, sender) {
+            const message = document.createElement("div");
+            message.className = sender === "user" ? "user-message" : "bot-message";
+            message.textContent = text;
+            messages.appendChild(message);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function showSuggestions(items) {
+            suggestions.replaceChildren();
+
+            items.forEach(question => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.textContent = question;
+                button.addEventListener("click", () => sendMessage(question));
+                suggestions.appendChild(button);
+            });
+        }
+
+        async function sendMessage(text) {
+            text = text.trim();
+
+            if (!text) return;
+
+            addMessage(text, "user");
+            input.value = "";
+            suggestions.replaceChildren();
+
+            try {
+                const response = await fetch("/ask", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        message: text,
+                        session_id: sessionId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error("The server returned an error.");
+                }
+
+                const data = await response.json();
+
+                addMessage(data.answer, "bot");
+                showSuggestions(data.suggestions || []);
+
+            } catch (error) {
+                addMessage(
+                    "Sorry, I couldn't connect to the server. Please try again.",
+                    "bot"
+                );
+                console.error(error);
+            }
+        }
+
+        form.addEventListener("submit", event => {
+            event.preventDefault();
+            sendMessage(input.value);
+        });
+    </script>
+
+</body>
+</html>

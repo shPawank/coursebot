@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+rank-bm25
+pandas
+python-dotenv
+pytest
